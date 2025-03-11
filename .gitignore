@@ -108,6 +108,6 @@ ENV/
 .vs/
 .idea/
 
-trainer/train_data/
-trainer/val_data/
+#trainer/train_data/
+#trainer/val_data/
 trainer/saved_models/
