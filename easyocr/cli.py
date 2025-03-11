@@ -13,11 +13,15 @@ def parse_args():
         help="for languages",
     )
     parser.add_argument(
+        # "--gpu",
+        # type=bool,
+        # choices=[True, False],
+        # default=True,
+        # help="Using GPU (default: True)",
         "--gpu",
-        type=bool,
-        choices=[True, False],
-        default=True,
-        help="Using GPU (default: True)",
+        action="store_true",
+        default=False,
+        help="Using GPU (default: False)",
     )
     parser.add_argument(
         "--model_storage_directory",
