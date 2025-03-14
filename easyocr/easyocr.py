@@ -74,6 +74,8 @@ class Reader(object):
                 self.device = 'cuda'
             elif torch.backends.mps.is_available():
                 self.device = 'mps'
+            elif torch.xpu.is_available():
+                self.device = 'xpu'
             else:
                 self.device = 'cpu'
                 if verbose:

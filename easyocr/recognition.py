@@ -177,6 +177,14 @@ def get_recognizer(recog_network, network_params, character,\
                 torch.quantization.quantize_dynamic(model, dtype=torch.qint8, inplace=True)
             except:
                 pass
+    elif device == 'xpu':
+        state_dict = torch.load(model_path, map_location=device, weights_only=False)
+        new_state_dict = OrderedDict()
+        for key, value in state_dict.items():
+            new_key = key[7:]
+            new_state_dict[new_key] = value
+        model.load_state_dict(new_state_dict)
+        model = model.to(device)
     else:
         model = torch.nn.DataParallel(model).to(device)
         model.load_state_dict(torch.load(model_path, map_location=device, weights_only=False))

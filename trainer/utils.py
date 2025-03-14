@@ -3,6 +3,13 @@ import pickle
 import numpy as np
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+elif torch.xpu.is_available():
+    device = torch.device('xpu')
+else:
+    device = torch.device('cpu')
+    
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)

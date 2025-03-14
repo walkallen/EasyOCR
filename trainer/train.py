@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.optim as optim
 import torch.utils.data
-from torch.cuda.amp import autocast, GradScaler
 import numpy as np
 
 from utils import CTCLabelConverter, AttnLabelConverter, Averager
@@ -16,6 +15,16 @@ from dataset import hierarchical_dataset, AlignCollate, Batch_Balanced_Dataset
 from model import Model
 from test import validation
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+    from torch.cuda.amp import autocast, GradScaler
+elif torch.xpu.is_available():
+    device = torch.device('xpu')
+    from torch.cpu.amp import autocast, GradScaler
+else:
+    device = torch.device('cpu')
+    from torch.cuda.amp import autocast, GradScaler
 
 def count_parameters(model):
     print("Modules, Parameters")
@@ -100,7 +109,10 @@ def train(opt, show_number = 2, amp=False):
                 if 'weight' in name:
                     param.data.fill_(1)
                 continue
-        model = torch.nn.DataParallel(model).to(device)
+        if torch.xpu.is_available():
+            model = model.to(device)
+        else:
+            model = torch.nn.DataParallel(model).to(device)
     
     model.train() 
     print("Model:")
