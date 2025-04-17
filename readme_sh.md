@@ -13,7 +13,7 @@ python -m easyocr.cli    -l ch_sim  -f ./examples/s4.png --detail=1   --verbose 
 time for file in ./input/* ;do  python -m easyocr.cli    -l ch_sim en  -f "$file" --detail=0  --gpu;done
 
 
-python -m easyocr.cli    -l ch_sim en  -f 'input/生产日期 2024 December 1204_3.jpg' --detail=0
+python -m easyocr.cli    -l ch_sim en  -f 'examples/input/生产日期 2024 December 1204_3.jpg' --detail=0
 
 
 ```
