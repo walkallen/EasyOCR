@@ -9,11 +9,14 @@ import torch.nn.init as init
 import torch.optim as optim
 import torch.utils.data
 import numpy as np
+import statistics
 
 from utils import CTCLabelConverter, AttnLabelConverter, Averager
 from dataset import hierarchical_dataset, AlignCollate, Batch_Balanced_Dataset
 from model import Model
 from test import validation
+
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 if torch.cuda.is_available():
@@ -51,6 +54,10 @@ def train(opt, show_number = 2, amp=False):
     log = open(f'./saved_models/{opt.experiment_name}/log_dataset.txt', 'a', encoding="utf8")
     AlignCollate_valid = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD, contrast_adjust=opt.contrast_adjust)
     valid_dataset, valid_dataset_log = hierarchical_dataset(root=opt.valid_data, opt=opt)
+
+    print(f'suhao valid_dataset {len(valid_dataset)}' )
+    print(valid_dataset)
+
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=min(32, opt.batch_size),
         shuffle=True,  # 'True' to check training progress with validation function.
@@ -182,12 +189,16 @@ def train(opt, show_number = 2, amp=False):
     i = start_iter
 
     scaler = GradScaler()
+    t0= time.time()
     t1= time.time()
+
+    # Start recording memory snapshot history
+    # torch.cuda.memory._record_memory_history(max_entries=100000)
         
     while(True):
         # train part
         optimizer.zero_grad(set_to_none=True)
-        
+
         if amp:
             with autocast():
                 image_tensors, labels = train_dataset.get_batch()
@@ -214,10 +225,16 @@ def train(opt, show_number = 2, amp=False):
         else:
             image_tensors, labels = train_dataset.get_batch()
             image = image_tensors.to(device)
+
+
             text, length = converter.encode(labels, batch_max_length=opt.batch_max_length)
             batch_size = image.size(0)
+
+
             if 'CTC' in opt.Prediction:
                 preds = model(image, text).log_softmax(2)
+
+
                 preds_size = torch.IntTensor([preds.size(1)] * batch_size)
                 preds = preds.permute(1, 0, 2)
                 torch.backends.cudnn.enabled = False
@@ -228,13 +245,16 @@ def train(opt, show_number = 2, amp=False):
                 target = text[:, 1:]  # without [GO] Symbol
                 cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
             cost.backward()
+
             torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip) 
+
             optimizer.step()
+
         loss_avg.add(cost)
 
         # validation part
         if (i % opt.valInterval == 0) and (i!=0):
-            print('training time: ', time.time()-t1)
+            print(f'training time: {time.time()-t1:.2f} sec')
             t1=time.time()
             elapsed_time = time.time() - start_time
             # for log
@@ -244,6 +264,13 @@ def train(opt, show_number = 2, amp=False):
                     valid_loss, current_accuracy, current_norm_ED, preds, confidence_score, labels,\
                     infer_time, length_of_data = validation(model, criterion, valid_loader, converter, opt, device)
                 model.train()
+
+                confidence_score_list = [x.item() for x in confidence_score]
+                confidence_score_list.sort()
+                flist = [f'{num:0.3f}' for num in confidence_score_list ]
+                print(flist)
+                # print(confidence_score_list)
+                print(f'suhao label length is {len(labels)} confidence_score length {len(confidence_score)} confidence_score average value {statistics.mean(confidence_score_list):0.3f} last 5 average value {statistics.mean(confidence_score_list[:5]):0.3f}')
 
                 # training loss and validation loss
                 loss_log = f'[{i}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f}, Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}'
@@ -269,7 +296,7 @@ def train(opt, show_number = 2, amp=False):
                 head = f'{"Ground Truth":25s} | {"Prediction":25s} | Confidence Score & T/F'
                 predicted_result_log = f'{dashed_line}\n{head}\n{dashed_line}\n'
                 
-                #show_number = min(show_number, len(labels))
+                show_number = min(show_number, len(labels))
                 
                 start = random.randint(0,len(labels) - show_number )    
                 for gt, pred, confidence in zip(labels[start:start+show_number], preds[start:start+show_number], confidence_score[start:start+show_number]):
@@ -281,7 +308,7 @@ def train(opt, show_number = 2, amp=False):
                 predicted_result_log += f'{dashed_line}'
                 print(predicted_result_log)
                 log.write(predicted_result_log + '\n')
-                print('validation time: ', time.time()-t1)
+                print(f'validation time: {time.time()-t1:.2f} sec')
                 t1=time.time()
         # save model per 1e+4 iter.
         if (i + 1) % 1e+4 == 0:
@@ -289,6 +316,7 @@ def train(opt, show_number = 2, amp=False):
                 model.state_dict(), f'./saved_models/{opt.experiment_name}/iter_{i+1}.pth')
 
         if i == opt.num_iter:
+            print(f'all time: {time.time()-t0:.2f} sec')
             print('end the training')
             sys.exit()
         i += 1
