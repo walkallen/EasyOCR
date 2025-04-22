@@ -33,7 +33,7 @@ class Reader(object):
                  user_network_directory=None, detect_network="craft", 
                  recog_network='standard', download_enabled=True, 
                  detector=True, recognizer=True, verbose=True, 
-                 quantize=True, cudnn_benchmark=False):
+                 quantize=True, cudnn_benchmark=False, use_openvino = False,):
         """Create an EasyOCR Reader
 
         Parameters:
@@ -213,7 +213,7 @@ class Reader(object):
             dict_list[lang] = os.path.join(BASE_PATH, 'dict', lang + ".txt")
 
         if detector:
-            self.detector = self.initDetector(detector_path)
+            self.detector = self.initDetector(detector_path, use_openvino=use_openvino)
             
         if recognizer:
             if recog_network == 'generation1':
@@ -269,11 +269,12 @@ class Reader(object):
         
         return detector_path
 
-    def initDetector(self, detector_path):
+    def initDetector(self, detector_path, use_openvino):
         return self.get_detector(detector_path, 
                                  device = self.device, 
                                  quantize = self.quantize, 
-                                 cudnn_benchmark = self.cudnn_benchmark
+                                 cudnn_benchmark = self.cudnn_benchmark,
+                                 use_openvino = use_openvino,
                                  )
     
     def setDetector(self, detect_network):
@@ -315,6 +316,7 @@ class Reader(object):
                slope_ths = 0.1, ycenter_ths = 0.5, height_ths = 0.5,\
                width_ths = 0.5, add_margin = 0.1, reformat=True, optimal_num_chars=None,
                threshold = 0.2, bbox_min_score = 0.2, bbox_min_size = 3, max_candidates = 0,
+               use_openvino = False,
                ):
 
         if reformat:
@@ -329,6 +331,7 @@ class Reader(object):
                                     low_text = low_text,
                                     poly = False, 
                                     device = self.device, 
+                                    use_openvino = use_openvino,
                                     optimal_num_chars = optimal_num_chars,
                                     threshold = threshold, 
                                     bbox_min_score = bbox_min_score, 
@@ -448,7 +451,7 @@ class Reader(object):
                  slope_ths = 0.1, ycenter_ths = 0.5, height_ths = 0.5,\
                  width_ths = 0.5, y_ths = 0.5, x_ths = 1.0, add_margin = 0.1, 
                  threshold = 0.2, bbox_min_score = 0.2, bbox_min_size = 3, max_candidates = 0,
-                 output_format='standard'):
+                 output_format='standard', use_openvino = False):
         '''
         Parameters:
         image: file path or numpy-array or a byte stream object
@@ -463,7 +466,7 @@ class Reader(object):
                                                  height_ths = height_ths, width_ths= width_ths,\
                                                  add_margin = add_margin, reformat = False,\
                                                  threshold = threshold, bbox_min_score = bbox_min_score,\
-                                                 bbox_min_size = bbox_min_size, max_candidates = max_candidates
+                                                 bbox_min_size = bbox_min_size, max_candidates = max_candidates, use_openvino   = use_openvino,
                                                  )
         # get the 1st result from hor & free list as self.detect returns a list of depth 3
         horizontal_list, free_list = horizontal_list[0], free_list[0]

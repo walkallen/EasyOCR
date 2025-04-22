@@ -13,11 +13,12 @@ def parse_args():
         help="for languages",
     )
     parser.add_argument(
-        # "--gpu",
-        # type=bool,
-        # choices=[True, False],
-        # default=True,
-        # help="Using GPU (default: True)",
+        "--openvino",
+        action="store_true",
+        default=False,
+        help="Using openvino (default: False)",
+    )
+    parser.add_argument(
         "--gpu",
         action="store_true",
         default=False,
@@ -253,7 +254,8 @@ def main():
                             detector=args.detector,\
                             recognizer=args.recognizer,\
                             verbose=args.verbose,\
-                            quantize=args.quantize)
+                            quantize=args.quantize,
+                            use_openvino = args.openvino, )
     for line in reader.readtext(args.file,\
                                 decoder=args.decoder,\
                                 beamWidth=args.beamWidth,\
@@ -279,7 +281,8 @@ def main():
                                 y_ths=args.y_ths,\
                                 x_ths=args.x_ths,\
                                 add_margin=args.add_margin,\
-                                output_format=args.output_format):
+                                output_format=args.output_format,
+                                use_openvino = args.openvino, ):
         print(line)
 
 

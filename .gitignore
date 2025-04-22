@@ -111,3 +111,7 @@ ENV/
 #trainer/train_data/
 #trainer/val_data/
 trainer/saved_models/
+
+
+examples/*.xml
+examples/*.bin
